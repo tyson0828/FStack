@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wafer-query-job
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - name: wafer-query-container
+          image: your-repo/wafer-query-image:latest
+          command: ["node", "queryDatabase.js", "SELECT * FROM wafers WHERE batchNumber = '1234';"]
+          env:
+            - name: DB_HOST
+              value: "db-host"
+            - name: DB_USER
+              value: "db-user"
+            - name: DB_PASSWORD
+              value: "db-password"
+            - name: DB_NAME
+              value: "db-name"
+            - name: ACTIVEMQ_HOST
+              value: "activemq-host"
+            - name: ACTIVEMQ_PORT
+              value: "61613"
+            - name: ACTIVEMQ_USER
+              value: "admin"
+            - name: ACTIVEMQ_PASSWORD
+              value: "admin"
+      restartPolicy: Never
+

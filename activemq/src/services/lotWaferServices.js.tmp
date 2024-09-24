@@ -1,0 +1,126 @@
+// src/services/waferService.js
+
+const { Client, KubeConfig } = require('kubernetes-client');
+const axios = require('axios');
+const logger = require('../utils/logger');
+
+// Configure Kubernetes Client
+const kubeconfig = new KubeConfig();
+kubeconfig.loadFromDefault(); // Loads kubeconfig from default location (usually ~/.kube/config)
+
+const client = new Client({ config: kubeconfig });
+
+// Function to construct the query
+const constructQuery = (userValues) => {
+  const { batchNumber, status, additionalFilters } = userValues;
+  let query = `SELECT * FROM wafers WHERE batchNumber = '${batchNumber}' AND status = '${status}'`;
+
+  if (additionalFilters) {
+    additionalFilters.forEach((filter) => {
+      query += ` AND ${filter.field} ${filter.operator} '${filter.value}'`;
+    });
+  }
+
+  return query;
+};
+
+// Function to create a Kubernetes Job for querying the database
+const createKubernetesJob = async (query) => {
+  const jobName = `wafer-query-job-${Date.now()}`;
+
+  // Kubernetes Job Definition
+  const jobManifest = {
+    apiVersion: 'batch/v1',
+    kind: 'Job',
+    metadata: {
+      name: jobName,
+      namespace: 'default', // Replace with your namespace
+    },
+    spec: {
+      template: {
+        spec: {
+          containers: [
+            {
+              name: 'wafer-query',
+              image: 'your-database-query-image:latest', // Replace with your container image
+              command: ['sh', '-c', `node queryDatabase.js "${query}"`], // Replace with your query execution command
+              env: [
+                { name: 'DB_HOST', value: process.env.DB_HOST },
+                { name: 'DB_USER', value: process.env.DB_USER },
+                { name: 'DB_PASSWORD', value: process.env.DB_PASSWORD },
+                { name: 'DB_NAME', value: process.env.DB_NAME },
+              ],
+            },
+          ],
+          restartPolicy: 'Never',
+        },
+      },
+    },
+  };
+
+  try {
+    // Create the Job in the Kubernetes cluster
+    await client.apis.batch.v1.namespaces('default').jobs.post({ body: jobManifest });
+    logger.info('Kubernetes Job created successfully', { jobName });
+    return jobName;
+  } catch (error) {
+    logger.error('Error creating Kubernetes Job', { error });
+    throw error;
+  }
+};
+
+// Function to wait for the Job to complete and retrieve logs
+const getJobResults = async (jobName) => {
+  try {
+    let jobStatus;
+    // Poll for job completion
+    while (true) {
+      const job = await client.apis.batch.v1.namespaces('default').jobs(jobName).get();
+      jobStatus = job.body.status;
+      if (jobStatus.succeeded === 1) {
+        break; // Job succeeded
+      } else if (jobStatus.failed >= 1) {
+        throw new Error('Job failed');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait for 3 seconds before polling again
+    }
+
+    // Get Job Pod logs
+    const podName = `${jobName}-pod`;
+    const logs = await client.api.v1.namespaces('default').pods(podName).log.get();
+    logger.info('Job Logs', { logs: logs.body });
+    return logs.body;
+  } catch (error) {
+    logger.error('Error retrieving Job results', { error });
+    throw error;
+  }
+};
+
+// Function to execute the query in the Kubernetes container
+const executeAndSendQuery = async (userValues) => {
+  try {
+    // Construct the query
+    const query = constructQuery(userValues);
+
+    // Create the Kubernetes Job
+    const jobName = await createKubernetesJob(query);
+
+    // Wait for the Job to complete and get the results
+    const results = await getJobResults(jobName);
+
+    // Process the results or send them to an external service as needed
+    const response = await axios.post('http://external-service:5000/process-query', { results });
+
+    // Log the response from the external service
+    logger.info('External Service Response', { response: response.data });
+
+    return response.data;
+  } catch (error) {
+    logger.error('Error executing and sending query', { error });
+    throw error;
+  }
+};
+
+module.exports = {
+  executeAndSendQuery,
+};

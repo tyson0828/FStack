@@ -1,0 +1,30 @@
+# Dockerfile for the container that queries the database and publishes to ActiveMQ
+
+# Use an official Node.js runtime as a parent image
+FROM node:14
+
+# Set the working directory
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the application code
+COPY . .
+
+# Set environment variables
+ENV DB_HOST=db-host
+ENV DB_USER=db-user
+ENV DB_PASSWORD=db-password
+ENV DB_NAME=db-name
+ENV ACTIVEMQ_HOST=activemq-host
+ENV ACTIVEMQ_PORT=61613
+ENV ACTIVEMQ_USER=admin
+ENV ACTIVEMQ_PASSWORD=admin
+
+# Start the application
+CMD ["node", "queryDatabase.js"]
+
