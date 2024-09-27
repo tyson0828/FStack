@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PreFetch WebSocket Client</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .container h1 {
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+
+    .form-group button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      background-color: #28a745;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    .form-group button:hover {
+      background-color: #218838;
+    }
+
+    .results {
+      margin-top: 20px;
+    }
+
+    .results pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PreFetch WebSocket Client</h1>
+    <div class="form-group">
+      <label for="clientId">Client ID</label>
+      <input type="text" id="clientId" placeholder="Enter Client ID" required>
+    </div>
+    <div class="form-group">
+      <label for="requestId">Request ID</label>
+      <input type="text" id="requestId" placeholder="Enter Request ID" required>
+    </div>
+    <div class="form-group">
+      <label for="values">Values (JSON Array)</label>
+      <input type="text" id="values" placeholder='e.g. [{"columnName":"column1", "value":"value1"}]' required>
+    </div>
+    <div class="form-group">
+      <button id="sendRequest">Send PreFetch Request</button>
+    </div>
+    <div class="results">
+      <h3>Query Results:</h3>
+      <pre id="queryResults">Waiting for results...</pre>
+    </div>
+  </div>
+
+  <script src="websocketClient.js"></script>
+</body>
+</html>
+
