@@ -4,14 +4,15 @@
 require('dotenv').config();
 
 const express = require('express');
+const cors = require('cors');
 const stompit = require('stompit');
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const helmet = require('helmet');
-const { connectToActiveMQ } = require('./config/activemqConfig');
-const routes = require('./api/routes');
-const { errorHandler } = require('./middlewares/errorHandler');
-const { startConsumers } = require('./consumers');
+const { connectToActiveMQ } = require('./src/config/activemqConfig');
+const routes = require('./src/api/routes');
+const { errorHandler } = require('./src/middlewares/errorHandler');
+const { startConsumers } = require('./src/consumers');
 
 const app = express();
 
