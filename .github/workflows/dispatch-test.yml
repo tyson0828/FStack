@@ -1,0 +1,17 @@
+name: Example Workflow
+
+on:
+  workflow_dispatch: # Allows manual or API-based triggers
+    inputs:
+      customInput:
+        description: 'A custom input'
+        required: false
+        default: 'default-value'
+
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run a script
+        run: |
+          echo "Triggered with input: ${{ github.event.inputs.customInput }}"
