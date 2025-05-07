@@ -1,0 +1,68 @@
+Step 1: Create a Secret for Admin Credentials
+kubectl create secret generic airflow-admin-user \
+  --from-literal=AIRFLOW_ADMIN_USERNAME=admin \
+  --from-literal=AIRFLOW_ADMIN_PASSWORD=StrongPassword123 \
+  -n <your namespace>
+
+Step 2: Remove defaultUser from airflow-values.yaml
+We’ll handle user creation manually using the Job.
+
+Step 3: Create a Post-Install Admin User Job
+Save this YAML as airflow-create-admin-user-job.yaml:
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: airflow-create-admin-user
+  namespace: <your namespace>
+  labels:
+    app: airflow
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: airflow-create-user
+          image: apache/airflow:2.8.1
+          env:
+            - name: AIRFLOW__CORE__EXECUTOR
+              value: KubernetesExecutor
+            - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-db-creds
+                  key: connection
+            - name: AIRFLOW_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-admin-user
+                  key: AIRFLOW_ADMIN_USERNAME
+            - name: AIRFLOW_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-admin-user
+                  key: AIRFLOW_ADMIN_PASSWORD
+          command:
+            - bash
+            - -c
+            - |
+              airflow db upgrade &&
+              airflow users create \
+                --username "$AIRFLOW_ADMIN_USERNAME" \
+                --password "$AIRFLOW_ADMIN_PASSWORD" \
+                --firstname Admin \
+                --lastname User \
+                --role Admin \
+                --email admin@example.com
+
+
+postgresql+psycopg2://airflow:airflow@airflow-postgresql:5432/airflow
+
+Step 4: Apply the Job After Helm Installation
+kubectl apply -f airflow-create-admin-user-job.yaml
+
+You can check status with:
+
+Bonus Cleanup
+You can delete the Job after successful creation:
+kubectl delete job airflow-create-admin-user -n brita
