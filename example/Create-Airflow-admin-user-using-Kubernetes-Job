@@ -1,8 +1,14 @@
+
 Step 1: Create a Secret for Admin Credentials
 kubectl create secret generic airflow-admin-user \
   --from-literal=AIRFLOW_ADMIN_USERNAME=admin \
   --from-literal=AIRFLOW_ADMIN_PASSWORD=StrongPassword123 \
   -n <your namespace>
+
+kubectl create secret generic airflow-db-creds \
+  --from-literal=connection='postgresql+psycopg2://airflow:airflow@airflow-postgresql:5432/airflow' \
+  -n <your namespace>
+
 
 Step 2: Remove defaultUser from airflow-values.yaml
 We’ll handle user creation manually using the Job.
