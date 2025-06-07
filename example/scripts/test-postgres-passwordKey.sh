@@ -1,0 +1,1 @@
+kubectl run psql-test --rm -it --image=bitnami/postgresql:16.1.0 --namespace britac --restart=Never --env="PGPASSWORD=$(kubectl get secret airflow-db-creds -n britac -o jsonpath='{.data.airflow-passwordKey}' | base64 --decode)" -- psql -h airflow-postgresql -U airflow -d airflow
