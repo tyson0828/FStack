@@ -1,70 +1,86 @@
 executor: KubernetesExecutor
 
 iamges:
-	airflow:
-		repository: <>
+  airflow:
+    repository: <>
 
 postgressql:
   enabled: true
   image:
-		registry: <>
-		repository: <>
-		tag: 16.1.0
-	imagePullSecrets:
-		- name: <>
-	auth:
-		username: airflow
-		database: airflow
-		passwordKey: airflow-passwordKey
-		postgresPasswordKey: postgres-passwordKey
-	existingSecret: airflow-db-creds
+    registry: <>
+    repository: <>
+    tag: 16.1.0
+    imagePullSecrets:
+        - name: <>
+    auth:
+        username: airflow
+        database: airflow
+        passwordKey: airflow-passwordKey
+        postgresPasswordKey: postgres-passwordKey
+    existingSecret: airflow-db-creds
 	
 redis:
-	enabled: false
+    enabled: false
 	
 webserver:
-	service:
-		type: ClusterIP
-	resources:
-		requests:
-			memory: "512Mi"
-			cpu: "250m"
-		limits:
-			memory: "1Gi"
-			cpu: "500m"
-		waitForMigrations:
-			enabled: true
-		startupProbe:
-			timeoutSeconds: 40
-			scheme: HTTP
-			initialDelaySeconds: 20
-			periodSeconds: 10
-			failureThreshold: 30
+  defaultUser:
+    enabled: true
+    username: ""  # leave blank
+    password: ""  # leave blank
+
+  extraEnv:
+    - name: _AIRFLOW_WWW_USER_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: airflow-admin-creds
+          key: username
+    - name: _AIRFLOW_WWW_USER_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: airflow-admin-creds
+          key: password
+    service:
+        type: ClusterIP
+    resources:
+      requests:
+          memory: "512Mi"
+          cpu: "250m"
+      limits:
+          memory: "1Gi"
+          cpu: "500m"
+      waitForMigrations:
+          enabled: true
+      startupProbe:
+          timeoutSeconds: 40
+          scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 30
 
 
 scheduler:
-	enabled: true
-	resources:
-		requests:
-			memory: "512Mi"
-			cpu: "250m"
-		limits:
-			memory: "1Gi"
-			cpu: "500m"	
-		waitForMigrations:
-			enabled: true
+  enabled: true
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"	
+    waitForMigrations:
+      enabled: true
 
 logs:
-	persistence:
-		enabled: true
-		size: "1Gi"
+  persistence:
+    enabled: true
+    size: "1Gi"
         
 extraObjects:
   - apiVersion: batch/v1
     kind: Job
     metadata:
       name: create-airflow-admin
-      namespace: britac
+      namespace: <>
     spec:
       template:
         spec:
