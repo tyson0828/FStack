@@ -2,50 +2,35 @@ executor: KubernetesExecutor
 
 iamges:
   airflow:
-    repository: <>
-
-data:
-  metadataConnection:
-    existingSecret: airflow-db-creds
-    secretKey: connection
+    repository: ~
 
 redis:
     enabled: false
 
+data:
+  metadataSecretName: ~
+  
 webserver:
   defaultUser:
-    enabled: true
-    username: ""  # leave blank
-    password: ""  # leave blank
+    enabled: false
 
-  extraEnv:
-    - name: _AIRFLOW_WWW_USER_USERNAME
-      valueFrom:
-        secretKeyRef:
-          name: airflow-admin-creds
-          key: username
-    - name: _AIRFLOW_WWW_USER_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: airflow-admin-creds
-          key: password
-    service:
-        type: ClusterIP
-    resources:
-      requests:
-          memory: "512Mi"
-          cpu: "250m"
-      limits:
-          memory: "1Gi"
-          cpu: "500m"
-      waitForMigrations:
-          enabled: true
-      startupProbe:
-          timeoutSeconds: 40
-          scheme: HTTP
-          initialDelaySeconds: 20
-          periodSeconds: 10
-          failureThreshold: 30
+  service:
+    type: ClusterIP
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+    waitForMigrations:
+      enabled: true
+    startupProbe:
+      timeoutSeconds: 40
+      scheme: HTTP
+      initialDelaySeconds: 20
+      periodSeconds: 10
+      failureThreshold: 30
 
 
 scheduler:
@@ -64,33 +49,58 @@ logs:
   persistence:
     enabled: true
     size: "1Gi"
-        
-extraObjects:
-  - apiVersion: batch/v1
-    kind: Job
-    metadata:
-      name: create-airflow-admin
-      namespace: <>
-    spec:
-      template:
-        spec:
-          restartPolicy: OnFailure
-          containers:
-            - name: create-admin
-              image: apache/airflow:2.10.5
-              imagePullPolicy: IfNotPresent
-              envFrom:
-                - secretRef:
-                    name: airflow-admin-creds
-              command: ["/bin/bash", "-c"]
-              args:
-                - |
-                  airflow db upgrade &&
-                  airflow users create \
-                    --username "$AIRFLOW_ADMIN_USERNAME" \
-                    --firstname Admin \
-                    --lastname User \
-                    --role Admin \
-                    --email "$AIRFLOW_ADMIN_EMAIL" \
-                    --password "$AIRFLOW_ADMIN_PASSWORD"
-        
+
+createUserJob:
+  useHelmHooks: false
+  applyCustomEnv: true
+  env:
+    - name: ADMIN_ROLE
+      valueFrom:
+        secretKeyRef:
+          name: airflow-admin-creds
+          key: role
+    - name: ADMIN_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: airflow-admin-creds
+          key: username
+    - name: ADMIN_EMAIL
+      valueFrom:
+        secretKeyRef:
+          name: airflow-admin-creds
+          key: email
+    - name: ADMIN_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: airflow-admin-creds
+          key: password
+    - name: ADMIN_FIRSTNAME
+      valueFrom:
+        secretKeyRef:
+          name: airflow-admin-creds
+          key: firstname
+    - name: ADMIN_LASTNAME
+      valueFrom:
+        secretKeyRef:
+          name: airflow-admin-creds
+          key: lastname          
+  args:
+    - "bash"
+    - "-c"
+    # The format below is necessary to get `helm lint` happy
+    - |-
+      exec \
+      airflow {{ semverCompare ">=2.0.0" .Values.airflowVersion | ternary "users create" "create_user" }} "$@"
+    - --
+    - "-r"
+    - "$(ADMIN_ROLE)"
+    - "-u"
+    - "$(ADMIN_USERNAME)"
+    - "-e"
+    - "$(ADMIN_PASSWORD)"
+    - "-f"
+    - "$(ADMIN_FIRSTNAME)"
+    - "-l"
+    - "$(ADMIN_LASTNAME)"
+    - "-p"
+    - "$(ADMIN_PASSWORD)"
