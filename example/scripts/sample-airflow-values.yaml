@@ -4,24 +4,14 @@ iamges:
   airflow:
     repository: <>
 
-postgressql:
-  enabled: true
-  image:
-    registry: <>
-    repository: <>
-    tag: 16.1.0
-    imagePullSecrets:
-        - name: <>
-    auth:
-        username: airflow
-        database: airflow
-        passwordKey: airflow-passwordKey
-        postgresPasswordKey: postgres-passwordKey
+data:
+  metadataConnection:
     existingSecret: airflow-db-creds
-	
+    secretKey: connection
+
 redis:
     enabled: false
-	
+
 webserver:
   defaultUser:
     enabled: true
