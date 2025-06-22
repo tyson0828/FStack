@@ -1,0 +1,64 @@
+## Airflow Executor
+executor: "KubernetesExecutor"
+
+auth:
+  enabled: true
+  existingSecret: airflow-admin-secret
+  usernameKey: airflow-user
+  passwordKey: airflow-password
+  
+## External PostgreSQL Database Configuration
+externalDatabase:
+  enabled: true
+  type: postgresql
+  host: your-db-host.example.com
+  port: 5433                         # Set the correct port
+  user: your_db_user
+  password: your_db_password         # You can also use externalSecret
+  database: your_airflow_database
+  existingSecret: ""                 # OR use existing Kubernetes Secret instead of plain password
+
+## Airflow Web UI Ingress
+ingress:
+  enabled: true
+  hostname: airflow.yourdomain.com
+  path: /
+  ingressClassName: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+  service:
+    name: airflow-webserver-service
+    port: 8080    
+  tls:
+    - hosts:
+        - airflow.yourdomain.com
+      secretName: airflow-tls
+
+## Airflow Image (Optional: set version or repo)
+image:
+  repository: bitnami/airflow
+  tag: 2.9.1                          # Or your preferred Airflow version
+  pullPolicy: IfNotPresent
+
+## Airflow Webserver
+web:
+  service:
+    name: airflow-webserver-service
+  port: 8080
+  readinessProbe:
+    enabled: true
+
+## Kubernetes Executor Config
+kubernetes:
+  namespace: airflow
+  useClusterLocalDNS: true
+
+## RBAC and Service Account
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  name: airflow-sa
