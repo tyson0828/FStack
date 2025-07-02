@@ -2,6 +2,33 @@ import os
 import shutil
 from pathlib import Path
 
+import os
+import shutil
+
+def copy_directory_skip_existing(src_base: str, dst_base: str):
+    src_base = os.path.abspath(src_base)
+    dst_base = os.path.abspath(dst_base)
+
+    for root, dirs, files in os.walk(src_base):
+        # Create corresponding path in destination
+        relative_path = os.path.relpath(root, src_base)
+        dest_dir = os.path.join(dst_base, relative_path)
+        os.makedirs(dest_dir, exist_ok=True)
+
+        for file in files:
+            src_file = os.path.join(root, file)
+            dst_file = os.path.join(dest_dir, file)
+
+            if not os.path.exists(dst_file):
+                try:
+                    shutil.copy2(src_file, dst_file)
+                    print(f"Copied: {src_file} → {dst_file}")
+                except Exception as e:
+                    print(f"Failed to copy {src_file}: {e}")
+            else:
+                print(f"Skipped (already exists): {dst_file}")
+
+
 def replicate_and_copy(file_list_path, source_base, destination_base):
     source_base = Path(source_base).resolve()
     destination_base = Path(destination_base).resolve()
